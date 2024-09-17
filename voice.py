@@ -1,35 +1,72 @@
-# The 'requests' and 'json' libraries are imported. 
-# 'requests' is used to send HTTP requests, while 'json' is used for parsing the JSON data that we receive from the API.
-import requests
-import json
-from dotenv import load_dotenv
+from pydub import AudioSegment
+
 import os
+import random
 
-load_dotenv()
+def get_random_background_music(music_folder):
+    """
+    Selects a random music file from the specified folder.
+    Supports common audio formats.
+    """
+    supported_formats = ('.mp3', '.wav', '.ogg', '.flac', '.m4a')
+    music_files = [file for file in os.listdir(music_folder) if file.lower().endswith(supported_formats)]
+    
+    if not music_files:
+        raise ValueError("No supported audio files found in the music folder.")
+    
+    return os.path.join(music_folder, random.choice(music_files))
+  
+def mix_audio(tts_path, music_folder, output_path, fade_out_duration=6000):
+    """
+    Mixes the TTS audio with randomly selected background music, applies volume control, and fade-out effects.
+    Appends 5 seconds of background music after the narration for a natural fade-out.
+    Adjusts the background music to be lower in volume than the TTS audio by a constant margin.
+    """
+    # Load TTS audio
+    tts_audio = AudioSegment.from_file(tts_path)
+    
+    # Load background music
+    music_path = get_random_background_music(music_folder)
+    print(f"Selected background music: {music_path}")
+    background_music = AudioSegment.from_file(music_path)
+    
+    # Adding another 5 seconds at the end
+    total_duration_ms = len(tts_audio) + 5000  # 5 seconds in milliseconds
+    
+    # Loop or trim background music to match the total duration
+    if len(background_music) < total_duration_ms:
+        loops = int(total_duration_ms / len(background_music)) + 1
+        background_music = background_music * loops
+    background_music = background_music[:total_duration_ms]
+    
+    # Normalize background music volume to be lower than TTS
+    tts_db = tts_audio.dBFS
+    background_music_db = background_music.dBFS
+    print(f"TTS dB level: {tts_db} dB")
+    print(f"Background music dB level before adjustment: {background_music_db} dB")
+    
+    # Ensure background music is lower in volume than TTS audio by a margin (e.g., 10 dB)
+    target_db_difference = 5  # The desired difference between TTS and background music
+    volume_adjustment = tts_db - background_music_db - target_db_difference
+    
+    # Adjust background music volume
+    background_music = background_music + volume_adjustment
+    print(f"Background music dB level after adjustment: {background_music.dBFS} dB")
+    
+    # Overlay tts_audio on background_music for tts_audio duration
+    mixed = tts_audio.overlay(background_music, position=0)
+    
+    # Apply fade-out to the last few seconds
+    mixed = mixed.fade_out(fade_out_duration)
+    
+    # Export mixed audio
+    mixed.export(output_path, format="mp3")
+    print("Final mixed audio saved successfully.")
+    
 
-XI_API_KEY = os.getenv("XI_API_KEY")
+# Example usage
 
-# This is the URL for the API endpoint we'll be making a GET request to.
-url = "https://api.elevenlabs.io/v1/voices"
-
-# Here, headers for the HTTP request are being set up. 
-# Headers provide metadata about the request. In this case, we're specifying the content type and including our API key for authentication.
-headers = {
-  "Accept": "application/json",
-  "xi-api-key": XI_API_KEY,
-  "Content-Type": "application/json"
-}
-
-# A GET request is sent to the API endpoint. The URL and the headers are passed into the request.
-response = requests.get(url, headers=headers)
-
-# The JSON response from the API is parsed using the built-in .json() method from the 'requests' library. 
-# This transforms the JSON data into a Python dictionary for further processing.
-data = response.json()
-
-# A loop is created to iterate over each 'voice' in the 'voices' list from the parsed data. 
-# The 'voices' list consists of dictionaries, each representing a unique voice provided by the API.
-for voice in data['voices']:
-  # For each 'voice', the 'name' and 'voice_id' are printed out. 
-  # These keys in the voice dictionary contain values that provide information about the specific voice.
-  print(f"{voice['name']}; {voice['voice_id']}")
+tts_path = "story_tts.mp3"
+music_folder = "background_music"
+output_path = "mixed_audio.mp3"
+mix_audio(tts_path, music_folder, output_path)

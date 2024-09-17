@@ -3,7 +3,6 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import requests
 from pydub import AudioSegment
-from pydub.exceptions import CouldntDecodeError
 from pydub.effects import normalize
 import random
 from moviepy.editor import (
@@ -34,7 +33,7 @@ FINAL_OUTPUT_AUDIO_PATH = "final_output_audio.mp3"
 FINAL_VIDEO_PATH = "final_output_video.mp4"
 IMAGES_FOLDER = "images/"
 
-FADE_OUT_DURATION = 8000  # milliseconds
+FADE_OUT_DURATION = 6000  # milliseconds
 CHUNK_SIZE = 1024  # Size of chunks to read/write at a time
 MUSIC_VOLUME_DB = -20  # Adjust the background music volume in dBFS (-20 is a reasonable starting point)
 STORY_WORD_COUNT = 50  # Desired length of the horror story
@@ -66,7 +65,7 @@ def generate_horror_story(word_count=800):
             {"role": "user", "content": prompt}
         ],
         max_tokens=word_count,  # Approximate token count for the desired word count
-        temperature=0.3,
+        temperature=0.8,
     )
     
     story = response.choices[0].message.content
@@ -121,85 +120,49 @@ def get_random_background_music(music_folder):
     return os.path.join(music_folder, random.choice(music_files))
 
 
-def mix_audio(tts_path, music_folder, output_path, music_volume_db=-20, fade_out_duration=8000, append_duration=5000):
+def mix_audio(tts_path, music_folder, output_path, fade_out_duration=6000):
     """
     Mixes the TTS audio with randomly selected background music, applies volume control, and fade-out effects.
-    - Selects random music files to ensure continuous background music.
-    - Reduces the background music volume by default to -20 dB.
-    - Blends the background music with the TTS audio.
-    - Applies a fade-out effect starting 8 seconds before the end.
-    - Appends 5 additional seconds to the audio for a smooth ending.
-    
-    Parameters:
-    - tts_path (str): Path to the TTS audio file.
-    - music_folder (str): Directory containing background music files.
-    - output_path (str): Path to save the mixed audio.
-    - music_volume_db (float): Volume reduction in decibels for background music. Default is -20 dB.
-    - fade_out_duration (int): Duration in milliseconds for the fade-out effect. Default is 8000 ms.
-    - append_duration (int): Duration in milliseconds to append for smooth ending. Default is 5000 ms.
+    Appends 5 seconds of background music after the narration for a natural fade-out.
+    Adjusts the background music to be lower in volume than the TTS audio by a constant margin.
     """
-    try:
-        # Load TTS audio
-        tts_audio = AudioSegment.from_file(tts_path)
-    except CouldntDecodeError:
-        raise ValueError(f"Could not decode TTS audio file: {tts_path}")
-
-    # Calculate total duration: TTS + append_duration
-    total_duration_ms = len(tts_audio) + append_duration
-
-    # Initialize background music
-    background_music = AudioSegment.empty()
+    # Load TTS audio
+    tts_audio = AudioSegment.from_file(tts_path)
     
-    while len(background_music) < total_duration_ms:
-        try:
-            music_path = get_random_background_music(music_folder)
-            print(f"Selected background music: {music_path}")
-            music = AudioSegment.from_file(music_path)
-            background_music += music
-        except CouldntDecodeError:
-            print(f"Warning: Could not decode music file: {music_path}. Skipping.")
-        except ValueError as ve:
-            print(f"Error: {ve}")
-            break  # No more music files to add
-
-    # Trim background music to the required total duration
+    # Load background music
+    music_path = get_random_background_music(music_folder)
+    print(f"Selected background music: {music_path}")
+    background_music = AudioSegment.from_file(music_path)
+    
+    # Adding another 5 seconds at the end
+    total_duration_ms = len(tts_audio) + 5000  # 5 seconds in milliseconds
+    
+    # Loop or trim background music to match the total duration
+    if len(background_music) < total_duration_ms:
+        loops = int(total_duration_ms / len(background_music)) + 1
+        background_music = background_music * loops
     background_music = background_music[:total_duration_ms]
-
-    # Reduce background music volume
-    background_music = background_music + music_volume_db  # music_volume_db is negative for reduction
-
-    # Normalize both audios to prevent clipping
-    tts_audio = tts_audio.normalize()
-    background_music = background_music.normalize()
-
-    # Overlay TTS audio on background music
-    mixed = background_music.overlay(tts_audio)
-
-    # Append additional background music for smooth ending
-    remaining_duration = append_duration
-    if remaining_duration > 0:
-        try:
-            additional_music_path = get_random_background_music(music_folder)
-            print(f"Appending additional background music: {additional_music_path}")
-            additional_music = AudioSegment.from_file(additional_music_path)
-            # Trim or loop the additional music to fit the append_duration
-            if len(additional_music) < remaining_duration:
-                loops = int(remaining_duration / len(additional_music)) + 1
-                additional_music = additional_music * loops
-            additional_music = additional_music[:remaining_duration]
-            mixed += additional_music
-        except CouldntDecodeError:
-            print(f"Warning: Could not decode additional music file: {additional_music_path}. Skipping append.")
-        except ValueError as ve:
-            print(f"Error: {ve}")
-
-    # Apply fade-out effect starting fade_out_duration before the end
-    if len(mixed) > fade_out_duration:
-        mixed = mixed.fade_out(fade_out_duration)
-    else:
-        # If the total duration is less than fade_out_duration, apply fade out over the entire duration
-        mixed = mixed.fade_out(len(mixed))
-
+    
+    # Normalize background music volume to be lower than TTS
+    tts_db = tts_audio.dBFS
+    background_music_db = background_music.dBFS
+    # print(f"TTS dB level: {tts_db} dB")
+    # print(f"Background music dB level before adjustment: {background_music_db} dB")
+    
+    # Ensure background music is lower in volume than TTS audio by a margin (e.g., 10 dB)
+    target_db_difference = 5  # The desired difference between TTS and background music
+    volume_adjustment = tts_db - background_music_db - target_db_difference
+    
+    # Adjust background music volume
+    background_music = background_music + volume_adjustment
+    # print(f"Background music dB level after adjustment: {background_music.dBFS} dB")
+    
+    # Overlay tts_audio on background_music for tts_audio duration
+    mixed = tts_audio.overlay(background_music, position=0)
+    
+    # Apply fade-out to the last few seconds
+    mixed = mixed.fade_out(fade_out_duration)
+    
     # Export mixed audio
     mixed.export(output_path, format="mp3")
     print("Final mixed audio saved successfully.")
@@ -296,24 +259,17 @@ def main():
         text_to_speech(story, OUTPUT_TTS_PATH, VOICE_ID)
         
         print("\nMixing TTS audio with background music...")
-        mix_audio(
-            tts_path=OUTPUT_TTS_PATH,
-            music_folder=BACKGROUND_MUSIC_FOLDER,
-            output_path=FINAL_OUTPUT_AUDIO_PATH,
-            music_volume_db=MUSIC_VOLUME_DB,
-            fade_out_duration=FADE_OUT_DURATION,
-            append_duration=5000,
-        )
+        mix_audio(OUTPUT_TTS_PATH, BACKGROUND_MUSIC_FOLDER,output_path=FINAL_OUTPUT_AUDIO_PATH, fade_out_duration=FADE_OUT_DURATION)
         
         print("\nCreating video with image slideshow and mixed audio...")
-        create_video_with_images(
-            audio_path=FINAL_OUTPUT_AUDIO_PATH,
-            images_folder=IMAGES_FOLDER,
-            output_video_path=FINAL_VIDEO_PATH,
-            display_duration_range=IMAGE_DISPLAY_DURATION_RANGE,
-            transition_duration=TRANSITION_DURATION,
-            video_size=VIDEO_SIZE
-        )
+        # create_video_with_images(
+        #     audio_path=FINAL_OUTPUT_AUDIO_PATH,
+        #     images_folder=IMAGES_FOLDER,
+        #     output_video_path=FINAL_VIDEO_PATH,
+        #     display_duration_range=IMAGE_DISPLAY_DURATION_RANGE,
+        #     transition_duration=TRANSITION_DURATION,
+        #     video_size=VIDEO_SIZE
+        # )
         
         print("\nProcess completed successfully!")
         print(f"Final audio file saved as: {FINAL_OUTPUT_AUDIO_PATH}")
