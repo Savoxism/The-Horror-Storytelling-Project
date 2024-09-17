@@ -1,5 +1,9 @@
 # Project specific
 text.txt
+og voices
+background_music
+images
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

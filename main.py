@@ -3,7 +3,6 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import requests
 from pydub import AudioSegment
-from pydub.effects import normalize
 import random
 from moviepy.editor import (
     AudioFileClip,
@@ -27,20 +26,18 @@ if not XI_API_KEY:
 VOICE_ID = "t7VcunDELSXwqBUqGfc7"
 OPEN_AI_MODEL = "o1-preview"
 
+STORY_WORD_COUNT = 300  # Desired length of the horror story
 OUTPUT_TTS_PATH = "story_tts.mp3"
+CHUNK_SIZE = 1024  # Size of chunks to read/write at a time
+
 BACKGROUND_MUSIC_FOLDER = "background_music/"
 FINAL_OUTPUT_AUDIO_PATH = "final_output_audio.mp3"
-FINAL_VIDEO_PATH = "final_output_video.mp4"
-IMAGES_FOLDER = "images/"
-
-FADE_OUT_DURATION = 6000  # milliseconds
-CHUNK_SIZE = 1024  # Size of chunks to read/write at a time
-MUSIC_VOLUME_DB = -20  # Adjust the background music volume in dBFS (-20 is a reasonable starting point)
-STORY_WORD_COUNT = 50  # Desired length of the horror story
 
 IMAGE_DISPLAY_DURATION_RANGE = (30, 45)  # Duration each image is displayed (seconds)
 TRANSITION_DURATION = 2  # Duration of fade in/out transitions (seconds)
 VIDEO_SIZE = (1280, 720)  # Video resolution (width, height)
+FINAL_VIDEO_PATH = "final_output_video.mp4"
+IMAGES_FOLDER = "images/"
 
 # Initialize OpenAI API
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -48,7 +45,25 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 def generate_horror_story(word_count=800):
     
     exemplary_story = """
-     I'm a big hiker. I was doing some hiking in Utah during a cross-country trip I was taking after breaking up with who I thought was going to be my fiance. Long story short, I caught her messing around with one of my closest friends. Total betrayal on both sides. I was 31. Utah was actually one of the states I was most excited about passing through. There are some great forests out there that I think every hiker would dream of exploring. I had picked Wasatch National Forest as my Utah destination because I had heard a lot of great things about it. One of its biggest upsides for me was that it had a lot of secluded areas that I could easily access. I prefer hiking alone, so bustling hiking trails swarming with people aren't really my thing. I picked an unnamed area of the forest and drove my car as far down this narrow access road as I could. I parked, stepped out of my car, and took in my surroundings. I geared up and checked my phone. No service, just the way I like it. I made a mental note of my starting point and began the trek. I know hiking alone in uncharted territory is dangerous, but I don’t think I have as much fun following a designated route. I always download the digital map of whatever location I’m planning to explore. A lot of people don’t realize that your phone’s GPS still functions without service. I know what you're probably thinking, but no, I didn’t get lost. I wish I could tell you that’s what the story is about. The reality of what happened to me is something I’m still trying to wrap my head around. My destination was a lookout point at the summit of the mountain, which was maybe 3 or 4 miles away. The terrain was pretty difficult, so I was only clearing about 1 and 1/2 miles an hour. About an hour into my hike, it began raining. Although it was light, I refused to continue hiking in the rain as a massive pet peeve of mine. Annoyed, I turned around and began retracing my steps. Eventually, I spotted my car in the distance, and I was relieved that this failed outing would soon be over. I reached my vehicle and was met with a horrifying sight. All four tires were slashed. I felt the fear start to set in. There wasn’t a chance in the world that all four tires had been coincidentally punctured. This had been deliberate. I whipped my head around, scanning the forest in every direction. Nothing. I listened as carefully as I could, but anything I might have picked up on was drowned out by the patter of raindrops on leaves and brush. I weighed my options. Without service, I was basically screwed. I’d need to get service so I could call for assistance, but as far as I remembered, I had lost service over 20 miles down the access road. Walking back to civilization seemed like a grueling option. I needed to find high ground. Luckily, the destination I had originally sought out was just that. I had to chance it. I didn’t feel safe walking 20 miles down the road where I’d basically be out in the open. Without another thought, I turned back towards the woods and began my route once again. I was about halfway to the summit when I picked up on a faint rustling coming from behind me, maybe 40 or so yards away. It would start and stop in tandem with my movements. I didn’t want to turn and look; I just picked up the pace, knowing I was probably a faster hiker than whoever or whatever was stalking me. The sun was starting to go down, casting an eerie shadow over the forest. The rain was still falling, and I was starting to get nervous. After putting some distance between myself and whatever was stalking me, I cast an inconspicuous glance over my shoulder. I didn’t see anything, but someone could have easily been hiding behind any of the countless trees in the forest. Finally, I reached the peak. By some miracle, there actually was service up there. I didn’t waste a second, not even pausing to admire the view. I told the police exactly where my car was and explained what happened, including my suspicion that I was being stalked. I also told the operator that I had AAA. I hung up, relieved that someone knew where I was. There was still a glaring problem, though. I’d have to navigate back through the forest before it was fully dark while somehow avoiding whoever was stalking me. I couldn’t just march in a straight line back through the forest; that was asking for trouble. I thought for a second before concluding that I’d have to try to walk in a semicircle back to my car, hopefully avoiding any kind of trap someone had set. I walked parallel to the cliff for a while before entering the woods from a different angle. I hadn’t bothered to analyze this area of the forest, though, so I pulled up the map on my phone and prayed my navigation skills wouldn’t let me down. Things were going well for a while. I hadn’t heard a single unusual sound behind me or in front of me. I might have spoken too soon, though, because not 30 seconds after having that thought, I heard a twig snap from my left. I turned to look but didn’t see anything, and a few minutes later, I heard another sound, this time from directly behind me. My blood ran cold as it dawned on me there were multiple people out there. I picked up the pace again, settling into a light jog. As if things weren’t terrifying enough already, I stumbled upon something that brought my panic levels from a five to a ten. There was a makeshift campsite literally tucked away in the woods. There were 12 or so logs sitting in a circle around a campfire. Someone had been here recently. I jogged around it and continued on, casting glances behind me every so often. A few minutes later, I heard something from my right this time. I turned quickly enough just to barely see someone’s foot jump behind a tree. That was it for me. My light jog instantly turned into a full-on sprint through the woods. I didn’t care how loud I was being. I needed to get out of that forest. As I ran, the sounds around me continued getting louder. It was clear that I was being chased. They weren’t even trying to hide it anymore. I continued running, afraid to look behind me. At one point, I couldn’t resist the urge anymore and shot a glance over my shoulder. I counted at least six people, all of whom were wearing white and charging toward me. I kept running, knowing my car wasn’t far. The next few minutes were the most terrifying moments I’ve ever experienced in my life. Imagine being overwhelmed with exhaustion while the threat of death looms over you. I couldn’t slow down; my life literally depended on it. Finally, I saw my car in the distance, and right behind it was a police officer. I reached his car and keeled over, almost throwing up before he even had a chance to speak. I turned around, and those people that had been chasing me were nowhere in sight. The cop told me that he had gone ahead and called AAA, which I was beyond thankful for. I gave him a full police report, and what he told me was chilling. Apparently, Utah houses the largest population of Mormons in the country, and it is not uncommon to encounter woods folk in unmarked forests. The specific forest I was exploring actually had a very rich history, especially as it pertains to woods cults and religious groups. The cop told me that I had probably stumbled upon one such group and that I was stupid to explore a random part of the woods. In all honesty, what that cop told me all those years ago was probably true. I still can’t wrap my head around this, though. If they were mad that I was infringing on their land, why not just tell me that? I don’t see why they’d feel the need to stalk and chase me through the woods, especially after slashing my tires. This experience is still something I think about all the time.
+        I’m not going to call myself an expert hiker, but I’ve been avidly enjoying the activity for a few decades now. I’ve traversed all the major trails in America, and I’ve been to over 75% of this beautiful country’s national parks. As such, I’ve had to find new ways to excite myself. I recently picked up a new hobby: scouring Google Maps for vast unnamed forests and just exploring them. It’s a little unconventional, but I think the added excitement is worth the risk of getting lost. Or at least I did. I carry a pack of homemade route-marking stickers that I periodically slap onto trees so I don’t forget my way back. As I pass each one, I pull them off the trees so as not to leave any litter behind. I’m surprised more people haven’t picked up on this trick. It makes getting lost in a forest nearly impossible.
+
+        Anyway, there was a slightly more daunting task ahead of me this time around. I had decided to explore Dudley Town Forest in Connecticut, which I’m sure would give any normal person pause. If you don’t know, the whole town has been abandoned since the 1800s, and there are all sorts of creepy accounts about strange things and stuff like that. You should do some research on the place if you’re interested in that sort of thing. I’m not, though. I’m not superstitious, and I don’t believe in ghost stories. Technically, this forest is off-limits to the public, but that hasn’t stopped me before. As I saw it, I was basically guaranteed to not encounter anyone in those woods, which is usually what I go for. I’m also from New England, so the drive actually wasn’t so bad.
+
+        I entered the woods around noon to ensure that the sun didn’t go down before I finished hiking. My first impression of the woods was honestly pretty freaky. I had heard that it was dead silent in there, and I was surprised to discover that it actually was. You don’t really notice or appreciate all the sounds in the forest until they aren’t there anymore. Imagine closing your eyes in a silent room and only being able to hear your breathing. That’s what it was like. To be completely honest, this silent phenomenon wasn’t something foreign to me. I’d been in forests void of animals before. I kept walking, placing my stickers as I went, trying to shake the eerie feeling the forest was inducing. I kept thinking I would eventually stumble upon an animal or at least some indication that there was life in there, but I had no such luck.
+
+        After a while, I was honestly hoping to encounter a person even. That’s how unsettled I was. Pretty soon, though, the silence of the forest stopped bothering me so much. For the first time since I’d stepped foot in those woods, I was calm. The feeling didn’t last long, though. Out of nowhere, I picked up on a sound that sent the uneasiness rushing back in. It was like a wailing, moaning sound. The kind of sound you might imagine a wounded animal making. That’s the best way I can put it. I still have trouble describing it even to this day. It was especially creepy since it was the only sound in the whole damn woods. I paused and listened, trying to figure out what it could be. I had never heard anything like it. There was a chance it could have been a whistling made by the wind, but there wasn’t any wind to begin with, so that didn’t make sense. I concluded that it was most likely a wounded animal, even though I knew it probably wasn’t.
+
+        I walked away from it until the sound faded away. You are probably wondering why I didn’t just turn around and leave right there. I wish I had an answer to that question. I told myself that if one more creepy thing happened, that would be it for me. As I walked, I started thinking to myself, how would an animal even get wounded in a forest like this? Like, was there someone hunting in here? There’s no way I could have missed a gunshot. Maybe the hunter had taken the shot before I was in earshot. Maybe he neglected to put the thing out of its misery. Would someone really do that, though? It was hard to imagine. All these thoughts and more were bouncing around in my head when I stumbled upon something on the tree directly in front of me.
+
+        There were honest-to-God carvings. I know it sounds cliche, but I’m being dead serious. The carvings were in symbols, and they didn’t look like letters either—just random slashes and bits of missing tree bark. I started looking around and saw that several of the neighboring trees were covered in the same marks. That was it for me. I turned around without another thought and began walking back, unsticking my trail markers as I passed them. I’m a curious person by nature, and even I was thinking, screw this. I followed my trail markers for a while before seeing something in the distance I hadn’t seen before. There was what looked like a bear’s den up ahead or at least a cave of some sort.
+
+        I stopped walking, confused. I know myself; there was a 0% chance I would have overlooked something like a bear’s den. And that’s when it hit me: my trail markers should have been shoulder-high, not waist-high. My blood ran cold. I turned around and began sprinting back the way I had come, constantly looking over my shoulder. How could I have been so absent-minded? Someone had moved my stickers in an attempt to lure me into that cave. But how? Was it really possible that someone had been tracking me this entire time? I didn’t have time to think all of it through. I was busy focusing on getting the hell out of that forest. The issue with that, though, was that I literally had no idea where I was going. Without those trail markers, I was as good as lost.
+
+        I kept running, not even trying to be quiet. It would have been pointless anyway. The forest was dead silent apart from the sounds I was making. I stopped to catch my breath and pulled out my phone, praying for a signal. By some miracle, I did have a bar. I found my parked car’s location on the map and figured out which direction I needed to go. I wasn’t far, and just like that, the signal dropped. It didn’t matter, though. I knew where I was going now. And that’s when the wailing started up again, only this time it was twice as loud. I ran faster than I had ever run before, even though my most fit years were behind me. The sound seemed like it was coming from right behind me, but every time I turned to look, I couldn’t see anything.
+
+        After the worst 10 minutes of my life, I finally reached the edge of the forest, and the wailing stopped abruptly. I jumped in my car and sped off before whatever had been chasing me had a chance to catch up. That day ruined hiking for me. Here’s my rational explanation for what happened: some hermit or woods freak lives in those woods and noticed me before I noticed him. He then, for whatever reason, tracked me and messed with my trail markers, hoping to lure me toward that cave. I’m assuming he had a whistle or something that made that wailing noise, which is why it stopped so abruptly once he realized he wasn’t going to catch me.
+
+        I know there are holes in this explanation, like how could someone blow through a whistle for that long while simultaneously running at full speed? I’m open to anybody suggesting explanations. Maybe there’s a reason that forest is off-limits to civilians.
      """
      
     prompt = (
@@ -106,66 +121,24 @@ def text_to_speech(text, output_path, voice_id, model_id="eleven_multilingual_v2
         raise Exception(f"ElevenLabs TTS API Error: {response.text}")
 
 #####
-def get_random_background_music(music_folder):
-    """
-    Selects a random music file from the specified folder.
-    Supports common audio formats.
-    """
-    supported_formats = ('.mp3', '.wav', '.ogg', '.flac', '.m4a')
-    music_files = [file for file in os.listdir(music_folder) if file.lower().endswith(supported_formats)]
-    
-    if not music_files:
-        raise ValueError("No supported audio files found in the music folder.")
-    
-    return os.path.join(music_folder, random.choice(music_files))
 
-
-def mix_audio(tts_path, music_folder, output_path, fade_out_duration=6000):
-    """
-    Mixes the TTS audio with randomly selected background music, applies volume control, and fade-out effects.
-    Appends 5 seconds of background music after the narration for a natural fade-out.
-    Adjusts the background music to be lower in volume than the TTS audio by a constant margin.
-    """
-    # Load TTS audio
+def mix_audio(tts_path, music_folder, output_path):
     tts_audio = AudioSegment.from_file(tts_path)
     
-    # Load background music
-    music_path = get_random_background_music(music_folder)
-    print(f"Selected background music: {music_path}")
-    background_music = AudioSegment.from_file(music_path)
+    music_files = [file for file in os.listdir(music_folder) if file.lower().endswith(('.mp3', '.wav', '.ogg', '.flac', '.m4a'))]
+    chosen_music_file = os.path.join(music_folder, random.choice(music_files))
+    background_music = AudioSegment.from_file(chosen_music_file)
     
-    # Adding another 5 seconds at the end
-    total_duration_ms = len(tts_audio) + 5000  # 5 seconds in milliseconds
-    
-    # Loop or trim background music to match the total duration
-    if len(background_music) < total_duration_ms:
-        loops = int(total_duration_ms / len(background_music)) + 1
-        background_music = background_music * loops
-    background_music = background_music[:total_duration_ms]
-    
-    # Normalize background music volume to be lower than TTS
-    tts_db = tts_audio.dBFS
-    background_music_db = background_music.dBFS
-    # print(f"TTS dB level: {tts_db} dB")
-    # print(f"Background music dB level before adjustment: {background_music_db} dB")
-    
-    # Ensure background music is lower in volume than TTS audio by a margin (e.g., 10 dB)
-    target_db_difference = 5  # The desired difference between TTS and background music
-    volume_adjustment = tts_db - background_music_db - target_db_difference
-    
-    # Adjust background music volume
-    background_music = background_music + volume_adjustment
-    # print(f"Background music dB level after adjustment: {background_music.dBFS} dB")
-    
-    # Overlay tts_audio on background_music for tts_audio duration
-    mixed = tts_audio.overlay(background_music, position=0)
-    
-    # Apply fade-out to the last few seconds
-    mixed = mixed.fade_out(fade_out_duration)
-    
-    # Export mixed audio
-    mixed.export(output_path, format="mp3")
-    print("Final mixed audio saved successfully.")
+    total_duration = len(tts_audio) + 5000
+    background_music = (background_music * ((total_duration // len(background_music)) + 1))[:total_duration]
+    print(f"The background music db is {background_music.dBFS}")
+    print(f"The tts_music db is: {tts_audio.dBFS}")
+    background_music += (tts_audio.dBFS - background_music.dBFS - 12) # Ensure a 12 unit dB difference
+    print(f"after change {background_music.dBFS}")
+    mixed_audio = background_music.overlay(tts_audio)
+    mixed_audio = mixed_audio.fade_out(6000)
+    mixed_audio.export(output_path, format='mp3')
+    print(f"Mixed audio exported successfully ")
 
 def create_video_with_images(audio_path, images_folder, output_video_path, display_duration_range=(30, 45), transition_duration=2, video_size=(1280, 720)):
     """
@@ -259,7 +232,10 @@ def main():
         text_to_speech(story, OUTPUT_TTS_PATH, VOICE_ID)
         
         print("\nMixing TTS audio with background music...")
-        mix_audio(OUTPUT_TTS_PATH, BACKGROUND_MUSIC_FOLDER,output_path=FINAL_OUTPUT_AUDIO_PATH, fade_out_duration=FADE_OUT_DURATION)
+        mix_audio(tts_path=OUTPUT_TTS_PATH,
+                  music_folder=BACKGROUND_MUSIC_FOLDER,
+                  output_path=FINAL_OUTPUT_AUDIO_PATH,
+                  )
         
         print("\nCreating video with image slideshow and mixed audio...")
         # create_video_with_images(

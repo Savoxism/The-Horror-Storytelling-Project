@@ -64,9 +64,22 @@ def mix_audio(tts_path, music_folder, output_path, fade_out_duration=6000):
     print("Final mixed audio saved successfully.")
     
 
+def mix_audio1(tts_path, music_folder, output_path):
+    tts_audio = AudioSegment.from_file(tts_path)
+    background_music = AudioSegment.from_file(get_random_background_music(music_folder))
+    total_duration = len(tts_audio) + 5000
+    background_music = (background_music * ((total_duration // len(background_music)) + 1))[:total_duration]
+    print(f"The background music db is {background_music.dBFS}")
+    print(tts_audio.dBFS)
+    background_music += (tts_audio.dBFS - background_music.dBFS - 10)
+    print(f"after change {background_music.dBFS}")
+    mixed_audio = background_music.overlay(tts_audio)
+    mixed_audio = mixed_audio.fade_out(6000)
+    mixed_audio.export(output_path, format='mp3')
+    
 # Example usage
 
 tts_path = "story_tts.mp3"
 music_folder = "background_music"
 output_path = "mixed_audio.mp3"
-mix_audio(tts_path, music_folder, output_path)
+mix_audio1(tts_path, music_folder, output_path)
