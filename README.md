@@ -6,7 +6,7 @@ This is just some idea that I thought of out of the blue while I was scrolling t
 ## What it does? 
 This project allows user to create horror stories recounted by some of the most well-known voices like Mr. Nighmare, Llama art, completely with AI.
 
-<img src="images/demo.png" alt="Horror Story Generator" width="400"/>
+![Horror Story Generator Screenshot](images/demo.png)
 
 ## Main Components 
 - OpenAI API
