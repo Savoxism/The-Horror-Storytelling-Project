@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Horror Story Generator</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 50%;
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-bottom: 2px solid white;
+            background: transparent;
+            color: white;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            background-color: white;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: gray;
+        }
+        #message {
+            margin-top: 30px;
+            font-size: 18px;
+        }
+        #audio-player {
+            margin-top: 30px;
+        }
+        .contribute-button {
+            margin-top: 50px;
+            padding: 10px 20px;
+            background-color: white;
+            color: black;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .contribute-button:hover {
+            background-color: gray;
+        }
+    </style>
+</head>
+<body>
+    <h1>Horror Story Generator</h1>
+    <input type="text" id="story-name" placeholder="Enter the name of your story">
+    <br>
+    <button onclick="generateStory()">Generate Story</button>
+    <div id="message"></div>
+    <div id="audio-player"></div>
+    <button class="contribute-button">Contributions</button>
+
+    <script>
+        function generateStory() {
+            const storyName = document.getElementById('story-name').value.trim();
+            if (!storyName) {
+                alert('Please enter the name of your story.');
+                return;
+            }
+
+            document.getElementById('message').innerText = 'Generating your horror story... This may take a few minutes.';
+            document.getElementById('audio-player').innerHTML = '';
+
+            fetch('/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ story_name: storyName }),
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                document.getElementById('message').innerText = 'Your story is ready!';
+                const url = URL.createObjectURL(blob);
+                const audioPlayer = document.createElement('audio');
+                audioPlayer.controls = true;
+                audioPlayer.src = url;
+                document.getElementById('audio-player').appendChild(audioPlayer);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('message').innerText = 'An error occurred while generating your story.';
+            });
+        }
+    </script>
+</body>
+</html>

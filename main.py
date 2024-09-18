@@ -16,7 +16,6 @@ load_dotenv()
 XI_API_KEY = os.getenv("XI_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Validate API keys
 if not OPENAI_API_KEY:
     raise ValueError("OpenAI API key not found in environment variables.")
 if not XI_API_KEY:
@@ -24,7 +23,7 @@ if not XI_API_KEY:
 
 # Important constants
 VOICE_ID = "t7VcunDELSXwqBUqGfc7"
-OPEN_AI_MODEL = "o1-preview"
+OPEN_AI_MODEL = "gpt-4o"
 
 STORY_WORD_COUNT = 300  # Desired length of the horror story
 OUTPUT_TTS_PATH = "story_tts.mp3"
@@ -219,7 +218,6 @@ def create_video_with_images(audio_path, images_folder, output_video_path, displ
     final_video.write_videofile(output_video_path, codec="libx264", audio_codec="aac", fps=24)
     print(f"Final video saved successfully as {output_video_path}.")
     
-
 def main():
     try:
         print("Generating horror story...")

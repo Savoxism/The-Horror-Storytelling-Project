@@ -4,6 +4,7 @@ og voices
 background_music
 images
 .DS_Store
+draft.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
